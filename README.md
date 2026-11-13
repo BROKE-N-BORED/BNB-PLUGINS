@@ -105,4 +105,4 @@ Read `PLUGIN-SPEC.md` section 6, or start from
 
 ## License
 
-TBD — Joshua's call. No LICENSE file yet.
+MIT — see the LICENSE file.
