@@ -2,3 +2,14 @@ __pycache__/
 *.pyc
 *.pyo
 .DS_Store
+
+# Secrets — never commit credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+id_rsa*
+*credentials*
+providers.json
+*.local.json
