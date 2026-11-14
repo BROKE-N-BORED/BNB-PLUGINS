@@ -10,7 +10,7 @@ followed, this is code the shell runs.
 ## What it does
 
 `check_resources` (optional `model` tag, e.g.
-`maternian/minicpm5-heretic:2b` — omit it to check the selected model)
+`maternion/minicpm5-heretic:2b` — omit it to check the selected model)
 returns a bench line — free/total RAM, CPU load and thread count,
 which models Ollama currently has loaded — plus a fit verdict for the
 named model when one is given.
