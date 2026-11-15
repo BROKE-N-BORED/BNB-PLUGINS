@@ -1,0 +1,77 @@
+{
+  "access": "Read-only local reads: files and folders under the given path, and git commands (rev-parse, log, status) run inside the given repo. No network, no model calls, no writes, no config keys.",
+  "config_keys": [],
+  "description": "Context awareness for AI use: short, honest, deterministic gists of files, folders, git repos, and pasted text. No model calls, no network, stdlib only.",
+  "id": "gist",
+  "kind": "plugin",
+  "name": "Gist",
+  "tools": [
+    {
+      "description": "Gist of a file: what it is, size and lines, headings, TODO/FIXME/OPEN markers with line numbers, last modified. Says so plainly when the file is missing or empty.",
+      "name": "gist_file",
+      "parameters": {
+        "properties": {
+          "path": {
+            "description": "Path to the file. Relative paths resolve against the workspace.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "requires_approval": false
+    },
+    {
+      "description": "Gist of a folder: file and folder counts by type, README gist if one exists, newest and oldest files, what looks stale (untouched 90+ days).",
+      "name": "gist_folder",
+      "parameters": {
+        "properties": {
+          "path": {
+            "description": "Path to the folder. Relative paths resolve against the workspace.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "requires_approval": false
+    },
+    {
+      "description": "Gist of a git repo: current branch, head commit, uncommitted change count, last 5 commits, README gist. Says so plainly when the path is not a repo.",
+      "name": "gist_repo",
+      "parameters": {
+        "properties": {
+          "path": {
+            "description": "Path to the repo. Defaults to the workspace when omitted.",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "requires_approval": false
+    },
+    {
+      "description": "Gist of pasted text: first lines, headings, and deterministically extractable TODO/DONE/OPEN/DECISION/FLAG markers, and what it could not determine. Never invents a summary the text doesn't support.",
+      "name": "gist_text",
+      "parameters": {
+        "properties": {
+          "text": {
+            "description": "The text to gist.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "requires_approval": false
+    }
+  ],
+  "version": "1.0"
+}

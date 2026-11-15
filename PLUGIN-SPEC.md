@@ -2,10 +2,12 @@
 
 The plugin spec as the loader **actually implements it** — every claim
 below is grounded in the Code Forge tree this repo was built from
-(`~/workspace/code-forge-v2/Linux Forge Agent/`, the shared tree,
-checked 2026-11-12; the same files are identical in the publish
-staging and the newest build trees). File/line references point at
-that tree.
+(`~/workspace/code-forge-v2/Linux Forge Agent/`, the shared tree;
+line refs re-checked against that tree 2026-11-15 in the Delta 6
+re-sync — several had drifted since the 2026-11-12 check, and the
+drifted ones are corrected below). File/line references point at
+that tree as of the re-check date — they drift as the tree moves, so
+verify a ref before trusting it in a newer tree.
 
 ## 1. What a plugin is
 
@@ -19,7 +21,7 @@ with two required files (`forge/plugins.py`, module docstring):
   `HANDLERS = {tool_name: fn(args, ctx) -> str}`.
 
 A folder missing either file is skipped by the loader
-(`forge/plugins.py:183`, `load_plugins`). Extra files in the folder
+(`forge/plugins.py:252`, `load_plugins`). Extra files in the folder
 are ignored by the loader — the MCP plugin keeps its `mcp_client.py`
 helper beside its `plugin.py`, and the Browse plugin imports it from
 the sibling `mcp/` folder.
@@ -39,7 +41,7 @@ bookkeeping and UI, not behaviour.
 
 ## 2. The manifest (`plugin.json`)
 
-Fields the loader reads (`forge/plugins.py:183-270`, `load_plugins`):
+Fields the loader reads (`forge/plugins.py:207-323`, `load_plugins`):
 
 | Field | Required? | What the loader does with it |
 |---|---|---|
@@ -77,7 +79,7 @@ Each handler takes `(args, ctx)` and returns a **string**. `args` is
 the model's arguments object for the call; `ctx` is the per-plugin
 context view (Section 5).
 
-Loader rules (`forge/plugins.py:183-270`):
+Loader rules (`forge/plugins.py:207-323`):
 
 - A declared tool with **no callable handler** is skipped — it never
   reaches the registry.
@@ -98,7 +100,7 @@ from the code:
 
 ## 4. Loading: metadata-first, code runs only when enabled and known
 
-`load_plugins` runs **two passes** (`forge/plugins.py:183-270`):
+`load_plugins` runs **two passes** (`forge/plugins.py:207-323`):
 
 1. **Metadata pass** — every folder's `plugin.json` is read so the
    shell can list all plugins (Customize, known/disabled
@@ -111,7 +113,7 @@ from the code:
 
 "Known" is the shell's stored history (`known_plugins` setting).
 With no stored history, the shell seeds it from `BUNDLED_PLUGIN_IDS`
-(`forge/plugins.py:48`; `forge/main.py:14786-14796`,
+(`forge/plugins.py:49`; `forge/main.py:16676-16687`,
 `_known_plugins_for_load`) — the seven ids that ship with Forge:
 
 `browse`, `cloudstore`, `github`, `huggingface`, `mcp`,
@@ -128,12 +130,52 @@ Enable/disable state lives in the owner's settings
 (`disabled_plugins`), not in the plugin folder — copying a folder in
 never enables it, and deleting a folder never leaves stale state
 behind. The Customize dialog renders one checkbox per plugin
-(`forge/main.py:1582-1711`, `2191-2224`).
+(`forge/main.py:2075-2125`, `2633-2668`).
+
+### The C16 fingerprint gate
+
+`load_plugins` also carries a content-fingerprint gate (C16, audit
+S1-25/W2) — the loader's own trust mechanism. It watches plugin
+*content*: the code about to run must still be the code the owner
+trusted. (It does not watch this document — the spec's own line refs
+drifted for the same reason this repo's plugin copies did: nothing
+re-checked them. See the header note.)
+
+- `plugin_fingerprint(folder)` (`forge/plugins.py:184-205`): sha256
+  over `plugin.json` + `plugin.py`, each file's bytes prefixed by its
+  name so the two files cannot trade contents unnoticed. Returns
+  `None` when either file is missing or unreadable — unverifiable
+  content never counts as matching.
+- The fingerprint is recorded at trust time: the first load of an
+  enabled plugin records its current content as the baseline in
+  place (the enable decision IS the trust decision), or re-enable
+  in Customize via `_record_plugin_fingerprint`
+  (`forge/main.py:16744`), which also clears any fingerprint-changed
+  notice for it. Recording is a no-op during self-maintenance —
+  the work copy's content must never become the live baseline.
+- At every load, a plugin about to execute is fingerprinted first
+  (`forge/plugins.py:275-288`): no recorded fingerprint means
+  first sight (the baseline is recorded); a changed fingerprint —
+  or unreadable content — means disk replacement under an old trust
+  decision: the pid goes on `fingerprint_changes` and the code
+  does NOT execute. When `fingerprints` is `None` the gate is off
+  and the load is exactly as before.
+- The caller is `_load_plugins_with_fingerprints`
+  (`forge/main.py:16703-16742`), the single plugin load path
+  (startup + rescan): it persists baselines to the
+  `plugin_fingerprints` setting, and on a change it returns the
+  plugin to DISABLED, records it in
+  `fingerprint_changed_plugins`, writes the event log, and
+  Customize shows a notice ("Changed on disk since you enabled
+  them. Left OFF until you re-enable them here",
+  `forge/main.py:2115-2125`). The owner re-enables it after
+  reviewing the new code — that re-enable is the new trust
+  decision.
 
 ## 5. The context view and config
 
 Handlers receive a **per-plugin view** over the live `PluginContext`
-(`forge/plugins.py:60-122`, `124-181`):
+(`forge/plugins.py:61-89`, `125-181`):
 
 - Attribute reads delegate to the live context, so shell-side updates
   (workspace, current model, log, cancel event) flow through as they
@@ -157,9 +199,9 @@ Handlers receive a **per-plugin view** over the live `PluginContext`
 
 Connector auth lives in the app config (`connectors.json` in the app
 data dir, loaded by `load_connector_config`,
-`forge/plugins.py:271-275`) — never in project files or prompts.
+`forge/plugins.py:326-330`) — never in project files or prompts.
 Parallel turns dispatch plugin tools under `scoped_ctx`
-(`forge/plugins.py:101-112`), so each turn's handlers see that turn's
+(`forge/plugins.py:102-112`), so each turn's handlers see that turn's
 own context snapshot.
 
 ## 6. Authoring: `create_plugin` / `update_plugin`
@@ -234,7 +276,7 @@ verbatim from the tree):
 | `github` | connector | `github_repo_info`, `github_search_repos` | Nothing (stdlib-only); optional `github_token` |
 | `huggingface` | connector | `hf_search_models`, `hf_model_info` | Nothing (stdlib-only); optional `hf_token` |
 | `mcp` | connector | `mcp_list_tools`, `mcp_call` | `mcp_servers` in `connectors.json`; the servers themselves |
-| `browse` | connector | 7 verbs + `verify_in_browser` | Sibling `mcp/` folder (`mcp_client.py`); `forge/browse.py`, `forge/verify.py`, `forge/webengine.py`; OpenCode Browse server + extension, installed by the owner |
+| `browse` | connector | 6 verbs + `verify_in_browser` | Sibling `mcp/` folder (`mcp_client.py`); `forge/browse.py`, `forge/verify.py`, `forge/webengine.py`; OpenCode Browse server + extension, installed by the owner |
 | `cloudstore` | connector | `cloud_list`, `cloud_read`, `cloud_download`, `cloud_upload`, `cloud_delete` | `forge/cloudstore.py`; rclone binary, configured by the owner; `.forge/cloudstore.json` allowed prefixes |
 
 Several plugins import `forge.*` modules — they are thin handler
@@ -242,6 +284,18 @@ shells over Forge-side logic and only run inside a Forge install.
 Only `github`, `huggingface`, and `mcp` are self-contained
 (stdlib-only) apart from the loader itself. Each plugin folder's
 README states its own dependencies and setup.
+
+### BNB-original: `gist`
+
+One plugin in this repo is not bundled in Forge — it was authored
+here to this contract (Delta 6, 2026-11-15, on Joshua's order:
+context awareness for AI use). `gist` is self-contained (stdlib
+only, no `forge.*` imports): 4 read-only tools (`gist_file`,
+`gist_folder`, `gist_repo`, `gist_text`), no approval needed. It
+follows the same loader contract as the bundled seven but is
+verified by its own 30-test suite, not by a tree diff, and the
+re-sync rule does not cover it. First load starts DISABLED like any
+new plugin; it has not yet been loaded inside a real Forge install.
 
 ## 8. What this spec does not cover
 

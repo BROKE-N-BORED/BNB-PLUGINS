@@ -28,5 +28,10 @@ the loader. Nothing external to install.
 Verbatim copy of `plugins/huggingface/` from the Code Forge tree
 (`~/workspace/code-forge-v2/Linux Forge Agent/`, the shared tree —
 identical in the publish staging and the newest build trees, checked
-2026-11-12). `plugin.json` and `plugin.py` are byte-identical to the
-tree; this README is the only added file.
+2026-11-15). `plugin.json` and `plugin.py` are byte-identical to the
+tree; this README is the only added file. Re-synced 2026-11-15 (Delta
+6): `plugin.py` was re-copied from the tree — the tree's limit guard
+(junk `limit` now returns "Limit must be a whole number" instead of
+raising an uncaught ValueError) and the repo-URL fix (`quote(repo,
+safe='/')` — the old `safe=''` encoded the slash as `%2F` and the API
+answered 400).

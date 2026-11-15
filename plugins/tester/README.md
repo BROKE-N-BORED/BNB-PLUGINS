@@ -38,5 +38,5 @@ a tester model configured. Nothing external to install.
 Verbatim copy of `plugins/tester/` from the Code Forge tree
 (`~/workspace/code-forge-v2/Linux Forge Agent/`, the shared tree —
 identical in the publish staging and the newest build trees, checked
-2026-11-12). `plugin.json` and `plugin.py` are byte-identical to the
+2026-11-15). `plugin.json` and `plugin.py` are byte-identical to the
 tree; this README is the only added file.
